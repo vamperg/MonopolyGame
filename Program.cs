@@ -84,10 +84,9 @@ namespace MonopolyGame
 
     class Game
     {
-       
         private int _GlobalTime;
         Player _Player = new Player();
-        List<Factory> _Factorys = new List<Factory>();
+        List<Factory> FactoryList = new List<Factory>();
         Factory _Factory = new Factory();
         Control Ctrl = new Control();
         Monopoly _Monopoly = new Monopoly();
@@ -101,10 +100,14 @@ namespace MonopolyGame
 
         void PrintMonopoly()
         {
+            Console.WriteLine("Ваши предприятия:");
             Program.SetCursor(3, Console.CursorTop);
-            for(int i = 0; i < 4; i++)
+            
+            for (int i = 0; i < Enum.GetValues(typeof(FactoryType)).Length; i++)
             {
-                Console.Write($"{_Factory.Type(i)}[{_Monopoly.TypeLot((FactoryType)i)}]\t");
+                int factorycount = _Monopoly.TypeLot((FactoryType)i);
+                int factoryprofit = factorycount * Convert.ToInt32(_Factory.Price(i));
+            Console.Write("{0}[{1}](+{2})\t",_Factory.Type(i),factorycount,factoryprofit);
             }
         }
 
@@ -114,33 +117,33 @@ namespace MonopolyGame
             set { _GlobalTime = value; }
         }
         public void Start()
-        {
-            _Player.Name = Console.ReadLine();
-            _Player.Money = 0;
+        {           
+            do
+            {
+                Console.Clear();
+                Program.SpCur(1);
+                Console.Write("Введите имя:");
+                _Player.Name = Console.ReadLine();
+            } while (_Player.Name == "");
+            _Player.Money = 100;
             _Player.PrintInfo();
-            _Factory.FactoryType = FactoryType.Little;
-            _Monopoly.FactoryAdd = _Factory;
-
-            Program.SpCur(0);
-            Console.WriteLine(_Monopoly.Earning);
-            Console.ReadKey();
             Timer time = new Timer(Time, null, 0, 1000);
             Update();
-            Console.Clear();
         }
         public void Update()
         {
-           
+            _Monopoly.List = FactoryList;
             Ctrl.Set();
             do
             {
                 Console.Clear();
                 _Player.PrintInfo();
-                Program.SetCursor(2, Console.CursorTop);
-                Console.WriteLine("{0}Купить Ларек\t{1}Купить СуперМаркет",Ctrl.kur[0], Ctrl.kur[1]);
-                Program.SetCursor(3, Console.CursorTop);
-                Console.WriteLine("Ваши предприятия:");
                 PrintMonopoly();
+                Program.SetCursor(2, Console.CursorTop+1);
+                Console.WriteLine("{0}Купить Ларек\t\t{1}Купить СуперМаркет",Ctrl.kur[0], Ctrl.kur[1]);
+                Program.SetCursor(3, Console.CursorTop+1);
+                
+
                 Ctrl.Code = Ctrl.Kur(2);
             } while (Ctrl.Code == 0);
             switch (Ctrl.Code)
@@ -148,8 +151,7 @@ namespace MonopolyGame
                 case 1:
                     if (_Player.Money >= 10)
                     {
-                        _Factory.FactoryType = FactoryType.Little;
-                        _Monopoly.FactoryAdd = _Factory;
+                        FactoryList.Add(new Factory() { FactoryType = FactoryType.Little });                      
                         _Player.Money -= 10;
                     }
                     Update();
@@ -157,8 +159,7 @@ namespace MonopolyGame
                 case 2:
                     if (_Player.Money >= 100)
                     {
-                        _Factory.FactoryType = FactoryType.Big;
-                        _Monopoly.FactoryAdd = _Factory;
+                        FactoryList.Add(new Factory() { FactoryType = FactoryType.Big });
                         _Player.Money -= 100;
                     }
                     
@@ -174,10 +175,6 @@ namespace MonopolyGame
     {
         List<Factory> _Factorys = new List<Factory>();
         private int _Profit;
-        public Factory FactoryAdd
-        {
-            set { _Factorys.Add(value); }
-        }
 
         public string FactoryName(int index)
         {
@@ -204,6 +201,7 @@ namespace MonopolyGame
         
         public List<Factory> List
         {
+            set { _Factorys = value; }
             get { return _Factorys; }
         }
         public void Profit()
@@ -223,8 +221,8 @@ namespace MonopolyGame
 
     class Factory
     {
-        public string[,] FactoryTyps = new string[2, 4] {{"Ларек","Продуктовый Магазин", "СуперМаркет","Торговый Центр" },
-                                                         {"10",        "100",              "1000",     "10000"}};
+        private string[,] FactoryTyps = new string[2, 5] {{"Ларек","Продуктовый Магазин", "СуперМаркет", "Гипермаркет","Торговый Центр" },
+                                                         {"10",        "100",              "1000",          "10000",   "50000"}};
         private string _Name;
         private int _Renta;
         private FactoryType type;
@@ -233,6 +231,10 @@ namespace MonopolyGame
         {
             _Name = FactoryTyps[0, (int)type];
             _Renta = Convert.ToInt32(FactoryTyps[1, (int)type]);                      
+        }
+        public string Price(int index)
+        {
+            return FactoryTyps[1, index];
         }
 
         public string Type(int index)
@@ -272,13 +274,13 @@ namespace MonopolyGame
         public void PrintInfo()
         {
             Program.SetCursor(3, 1);
-            Console.WriteLine("Имя:{0}\tДенег:{1}",_Name,_Money);
+            Console.WriteLine("Имя:{0}\t\tДенег:{1}\n",_Name,_Money);
         }
     }
 
     class Program
     {
-        static public Game game = new Game();
+        static public Game _Game = new Game();
         public static void SetCursor(int x, int y)
         {
             Console.SetCursorPosition(x, y);
@@ -286,14 +288,12 @@ namespace MonopolyGame
         public static void SpCur(int x)
         {
             SetCursor(3, Console.CursorTop+x);
-        }
-
-        
+        }      
 
         static void Setting()
         {
-            Console.SetBufferSize(120, 30);
-            Console.SetWindowSize(120, 30);
+            Console.SetBufferSize(140, 30);
+            Console.SetWindowSize(140, 30);
             Console.CursorVisible = false;
         }
 
@@ -301,8 +301,7 @@ namespace MonopolyGame
         static void Main(string[] args)
         {
             Setting();
-            game.Start();
-
+            _Game.Start();
             Console.ReadKey();
         }
     }
